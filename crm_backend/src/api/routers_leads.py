@@ -109,7 +109,10 @@ def transition_lead(lead_id: int, body: LeadTransition, db: Session = Depends(ge
 # PUBLIC_INTERFACE
 @router.delete("/{lead_id}", status_code=204, summary="Delete lead")
 def delete_lead(lead_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> None:
-    """Delete lead by id."""
+    """Delete lead by id.
+
+    Returns no content (204) and thus no response body or model.
+    """
     lead = db.query(Lead).filter(Lead.id == lead_id).first()
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")

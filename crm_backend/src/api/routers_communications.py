@@ -98,7 +98,10 @@ def update_communication(
 # PUBLIC_INTERFACE
 @router.delete("/{communication_id}", status_code=204, summary="Delete communication")
 def delete_communication(communication_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> None:
-    """Delete a communication."""
+    """Delete a communication.
+
+    204 No Content responses must not include a body; we return None.
+    """
     comm = db.query(Communication).filter(Communication.id == communication_id).first()
     if not comm:
         raise HTTPException(status_code=404, detail="Communication not found")

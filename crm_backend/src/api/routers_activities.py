@@ -94,7 +94,10 @@ def update_activity(activity_id: int, payload: ActivityUpdate, db: Session = Dep
 # PUBLIC_INTERFACE
 @router.delete("/{activity_id}", status_code=204, summary="Delete activity")
 def delete_activity(activity_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> None:
-    """Delete an activity."""
+    """Delete an activity.
+
+    Note: 204 No Content must not include a response body. We return None.
+    """
     activity = db.query(Activity).filter(Activity.id == activity_id).first()
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")

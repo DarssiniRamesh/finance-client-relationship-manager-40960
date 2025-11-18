@@ -92,10 +92,15 @@ def update_client(
 # PUBLIC_INTERFACE
 @router.delete("/{client_id}", status_code=204, summary="Delete client")
 def delete_client(client_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> None:
-    """Delete a client by id."""
+    """Delete a client by id.
+
+    FastAPI requires that HTTP 204 responses have no response body and no response model.
+    This endpoint intentionally returns None to comply with RFC 7231 and FastAPI validation.
+    """
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     db.delete(client)
     db.commit()
+    # Explicitly return None to avoid any response body for 204 No Content.
     return None
