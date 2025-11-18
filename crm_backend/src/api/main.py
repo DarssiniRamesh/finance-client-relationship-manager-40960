@@ -35,6 +35,11 @@ app.add_middleware(
     allow_headers=list(settings.CORS_ALLOW_HEADERS),
 )
 
+# Ensure database tables exist even if application startup events are not
+# triggered (e.g., certain test runners or tooling that instantiate the app
+# without running lifespan hooks). This call is idempotent.
+init_db(engine)
+
 
 @app.on_event("startup")
 def on_startup() -> None:
