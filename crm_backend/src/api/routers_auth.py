@@ -96,6 +96,27 @@ def signup(data: UserCreate, db: Session = Depends(get_db)) -> UserOut:
         # Likely unique constraint violation (duplicate email) or other integrity issue.
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
+    except OperationalError as e:
+        # Handle missing tables / DB not initialized at commit time: init and retry once.
+        db.rollback()
+        logger.warning("OperationalError during signup commit: %s. Attempting auto-init and retry.", e)
+        try:
+            bind = None
+            try:
+                bind = db.get_bind()
+            except Exception:  # pragma: no cover - defensive
+                bind = None
+            init_db(bind or engine)
+            # Re-add in case rollback detached it
+            db.add(user)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
+        except Exception as e2:
+            db.rollback()
+            logger.exception("Retry after init failed during signup commit: %s", e2)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database not initialized")
     except Exception as e:
         db.rollback()
         logger.exception("Unhandled exception during signup commit: %s", e)

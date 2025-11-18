@@ -14,7 +14,9 @@ from src.api.config import get_settings, get_bool_env
 from src.db.models import User
 from src.db.session import get_db
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use a stable, pure-Python KDF by default to avoid environment-specific bcrypt backend issues.
+# pbkdf2_sha256 is widely supported and avoids native extension pitfalls seen with bcrypt in CI.
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 settings = get_settings()
@@ -22,13 +24,16 @@ settings = get_settings()
 
 # PUBLIC_INTERFACE
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a stored hash using bcrypt."""
+    """Verify a plain password against a stored hash.
+
+    Uses the configured Passlib CryptContext (pbkdf2_sha256).
+    """
     return pwd_context.verify(plain_password, hashed_password)
 
 
 # PUBLIC_INTERFACE
 def get_password_hash(password: str) -> str:
-    """Hash a password using bcrypt."""
+    """Hash a password using the configured KDF (pbkdf2_sha256)."""
     return pwd_context.hash(password)
 
 
