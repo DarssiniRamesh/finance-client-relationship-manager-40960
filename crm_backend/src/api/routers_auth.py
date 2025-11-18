@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from src.api.schemas import LoginRequest, Token, UserCreate, UserOut
 from src.api.security import create_access_token, verify_password, get_password_hash
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
     response_model=Token,
     summary="Login",
     description="Authenticate with email and password to obtain a JWT bearer token.",
-    responses={401: {"description": "Invalid credentials"}},
+    responses={401: {"description": "Invalid credentials"}, 422: {"description": "Validation Error"}},
 )
 def login(data: LoginRequest, db: Session = Depends(get_db)) -> Token:
     """Authenticate a user and issue JWT token.
@@ -40,9 +41,15 @@ def login(data: LoginRequest, db: Session = Depends(get_db)) -> Token:
 @router.post(
     "/signup",
     response_model=UserOut,
+    status_code=201,
     summary="Signup",
     description="Create a user account. In production, restrict this endpoint appropriately.",
-    responses={400: {"description": "User already exists"}},
+    responses={
+        201: {"description": "User created"},
+        400: {"description": "Invalid request"},
+        409: {"description": "User already exists"},
+        422: {"description": "Validation Error"},
+    },
 )
 def signup(data: UserCreate, db: Session = Depends(get_db)) -> UserOut:
     """Create a new user for bootstrapping.
@@ -52,11 +59,22 @@ def signup(data: UserCreate, db: Session = Depends(get_db)) -> UserOut:
     Returns:
         UserOut
     """
+    # Check explicit existence to provide a friendly error; still handle race with IntegrityError.
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
+
     user = User(email=data.email, full_name=data.full_name, hashed_password=get_password_hash(data.password))
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Likely unique constraint violation (duplicate email) or other integrity issue.
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
+    except Exception:
+        db.rollback()
+        # Avoid leaking internal errors to clients; instruct client to try again.
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not create user")
     db.refresh(user)
     return UserOut.model_validate(user)
