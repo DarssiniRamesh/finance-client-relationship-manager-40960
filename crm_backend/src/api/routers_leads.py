@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -107,8 +107,8 @@ def transition_lead(lead_id: int, body: LeadTransition, db: Session = Depends(ge
 
 
 # PUBLIC_INTERFACE
-@router.delete("/{lead_id}", status_code=204, summary="Delete lead")
-def delete_lead(lead_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> None:
+@router.delete("/{lead_id}", status_code=204, response_class=Response, summary="Delete lead")
+def delete_lead(lead_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> Response:
     """Delete lead by id.
 
     Returns no content (204) and thus no response body or model.
@@ -118,4 +118,4 @@ def delete_lead(lead_id: int, db: Session = Depends(get_db), user: User = Depend
         raise HTTPException(status_code=404, detail="Lead not found")
     db.delete(lead)
     db.commit()
-    return None
+    return Response(status_code=204)

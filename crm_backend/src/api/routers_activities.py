@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from src.api.schemas import ActivityCreate, ActivityOut, ActivityUpdate, ActivityPage
@@ -92,8 +92,8 @@ def update_activity(activity_id: int, payload: ActivityUpdate, db: Session = Dep
 
 
 # PUBLIC_INTERFACE
-@router.delete("/{activity_id}", status_code=204, summary="Delete activity")
-def delete_activity(activity_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> None:
+@router.delete("/{activity_id}", status_code=204, response_class=Response, summary="Delete activity")
+def delete_activity(activity_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> Response:
     """Delete an activity.
 
     Note: 204 No Content must not include a response body. We return None.
@@ -103,4 +103,4 @@ def delete_activity(activity_id: int, db: Session = Depends(get_db), user: User 
         raise HTTPException(status_code=404, detail="Activity not found")
     db.delete(activity)
     db.commit()
-    return None
+    return Response(status_code=204)

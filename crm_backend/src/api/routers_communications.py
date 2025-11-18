@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 
 from src.api.schemas import CommunicationCreate, CommunicationOut, CommunicationUpdate, CommunicationPage
@@ -96,8 +96,8 @@ def update_communication(
 
 
 # PUBLIC_INTERFACE
-@router.delete("/{communication_id}", status_code=204, summary="Delete communication")
-def delete_communication(communication_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> None:
+@router.delete("/{communication_id}", status_code=204, response_class=Response, summary="Delete communication")
+def delete_communication(communication_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> Response:
     """Delete a communication.
 
     204 No Content responses must not include a body; we return None.
@@ -107,4 +107,4 @@ def delete_communication(communication_id: int, db: Session = Depends(get_db), u
         raise HTTPException(status_code=404, detail="Communication not found")
     db.delete(comm)
     db.commit()
-    return None
+    return Response(status_code=204)

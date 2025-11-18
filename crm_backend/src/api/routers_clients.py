@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 
@@ -90,8 +90,8 @@ def update_client(
 
 
 # PUBLIC_INTERFACE
-@router.delete("/{client_id}", status_code=204, summary="Delete client")
-def delete_client(client_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> None:
+@router.delete("/{client_id}", status_code=204, response_class=Response, summary="Delete client")
+def delete_client(client_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> Response:
     """Delete a client by id.
 
     FastAPI requires that HTTP 204 responses have no response body and no response model.
@@ -102,5 +102,5 @@ def delete_client(client_id: int, db: Session = Depends(get_db), user: User = De
         raise HTTPException(status_code=404, detail="Client not found")
     db.delete(client)
     db.commit()
-    # Explicitly return None to avoid any response body for 204 No Content.
-    return None
+    # Explicitly return an empty Response to avoid any response body for 204 No Content.
+    return Response(status_code=204)
