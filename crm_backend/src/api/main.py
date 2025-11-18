@@ -5,6 +5,14 @@ from src.api.config import get_settings
 from src.db.session import engine
 from src.db.init_db import init_db
 
+# Routers
+from src.api.routers_auth import router as auth_router
+from src.api.routers_clients import router as clients_router
+from src.api.routers_leads import router as leads_router
+from src.api.routers_activities import router as activities_router
+from src.api.routers_communications import router as communications_router
+from src.api.routers_metrics import router as metrics_router
+
 settings = get_settings()
 
 app = FastAPI(
@@ -46,3 +54,12 @@ def health_check() -> dict:
         dict: A simple status message to indicate the service is running.
     """
     return {"message": "Healthy"}
+
+
+# Include API routers under /api/v1
+app.include_router(auth_router)
+app.include_router(clients_router)
+app.include_router(leads_router)
+app.include_router(activities_router)
+app.include_router(communications_router)
+app.include_router(metrics_router)
